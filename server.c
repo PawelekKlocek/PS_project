@@ -40,7 +40,7 @@ int main() {
     bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     listen(server_fd, 3);
 
-    printf("Serwer dziala na porcie %d...\n", PORT);
+    printf("The server is running on the port %d...\n", PORT);
 
     while (1) {
         FD_ZERO(&readfds);
@@ -60,8 +60,8 @@ int main() {
             for (int i = 0; i < MAX_CLIENTS; i++) {
                 if (client_sockets[i] == 0) {
                     client_sockets[i] = new_socket;
-                    strcpy(client_nicks[i], "Anonim");
-                    printf("👤 Nowy klient polaczony jako Anonim (#%d)\n", i);
+                    strcpy(client_nicks[i], "User");
+                    printf("New user has been connected as User (#%d)\n", i);
                     break;
                 }
             }
@@ -79,14 +79,35 @@ int main() {
                     strcpy(client_nicks[i], "");
                 } else {
                     buffer[valread] = '\0';
+
+                    if (strncmp(buffer, "/help", 5) == 0) {
+                        const char *help_message =
+                                "Possible actions:\n"
+                                "/nick <your_nickname> - set your new nickname\n"
+                                "/join <chat_id> - join to group chat\n"
+                                "/help - display this help message\n";
+
+                        send(sd, help_message, strlen(help_message), 0);
+                    }
                     if (strncmp(buffer, "/nick ", 6) == 0) {
-                        char *new_nick = buffer + 6;
-                        new_nick[strcspn(new_nick, "\r\n")] = 0;
-                        snprintf(buffer, BUFFER_SIZE, "%s zmienil nick na %s\n", client_nicks[i], new_nick);
-                        printf("Klient #%d ustawil nick na: %s\n", i, client_nicks[i]);
-                        strcpy(client_nicks[i], new_nick);
-                        broadcast(i, buffer);
-                    } else {
+                        char new_nick[50] = {0};
+
+                        sscanf(buffer + 6, "%49s", new_nick);
+
+                        if (strlen(new_nick) == 0) {
+                            send(sd, "Enter correct nick!\n", strlen("Enter correct nick!\n"), 0);
+                        } else {
+                            char message[BUFFER_SIZE];
+                            snprintf(message, sizeof(message), "%s changed nickname to: %s\n", client_nicks[i], new_nick);
+                            printf("Klient #%d changed nickname to: %s\n", i, new_nick);
+                            strcpy(client_nicks[i], new_nick);
+
+                            broadcast(i, message);
+
+                            send(sd, "Nickname has been changed correctly.\n", strlen("Nickname has been changed correctly.\n"), 0);
+                        }
+                    }
+                    else {
                         char message[BUFFER_SIZE + 50];
                         snprintf(message, sizeof(message), "%s: %s", client_nicks[i], buffer);
                         broadcast(i, message);

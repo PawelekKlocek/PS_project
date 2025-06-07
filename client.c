@@ -39,10 +39,11 @@ int main() {
 
     CreateThread(NULL, 0, receive_thread, &sock, 0, NULL);
 
-    printf("💬 Polaczono z serwerem. Wpisz wiadomość lub /nick <twoj_nick>\n");
+    printf("Connected with the default server. Enter your first message or type /help to see possible actions. \n");
 
     while (1) {
         fgets(message, BUFFER_SIZE, stdin);
+        printf("You: ");
         send(sock, message, strlen(message), 0);
     }
 
